@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Job Log</title>
+<style>
+  :root {
+    --ink: #12161c;
+    --ink-raised: #1b212a;
+    --paper: #e9e4d8;
+    --paper-dim: #9aa0a8;
+    --amber: #e0a53d;
+    --amber-dim: #8a6a2c;
+    --rule: #2a323d;
+    --error: #d9694f;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    min-height: 100vh;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    padding: 32px 18px 60px;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+  }
+
+  .sub {
+    color: var(--paper-dim);
+    font-size: 13px;
+    margin: 0 0 28px;
+    line-height: 1.5;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--paper-dim);
+    margin-bottom: 6px;
+  }
+
+  input {
+    width: 100%;
+    background: var(--ink-raised);
+    border: 1px solid var(--rule);
+    color: var(--paper);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 13px 14px;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  input:focus {
+    border-color: var(--amber-dim);
+  }
+
+  input::placeholder {
+    color: #5a626d;
+  }
+
+  button {
+    width: 100%;
+    background: var(--amber);
+    color: var(--ink);
+    border: none;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 15px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+
+  button:active {
+    transform: scale(0.98);
+  }
+
+  button:disabled {
+    background: var(--rule);
+    color: var(--paper-dim);
+    cursor: not-allowed;
+  }
+
+  .status {
+    margin-top: 22px;
+    min-height: 1px;
+  }
+
+  .error-box {
+    border: 1px solid var(--error);
+    background: rgba(217, 105, 79, 0.08);
+    color: var(--error);
+    font-size: 13px;
+    padding: 12px 14px;
+    border-radius: 3px;
+    line-height: 1.5;
+  }
+
+  /* Stamp result */
+  .stamp-wrap {
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stamp {
+    display: inline-block;
+    border: 3px solid var(--amber);
+    color: var(--amber);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 3px;
+    transform: rotate(-4deg) scale(1.4);
+    opacity: 0;
+    animation: stampIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.05s forwards;
+  }
+
+  @keyframes stampIn {
+    0%   { opacity: 0; transform: rotate(-4deg) scale(2.2); }
+    60%  { opacity: 1; }
+    100% { opacity: 1; transform: rotate(-4deg) scale(1); }
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .row:last-child { border-bottom: none; }
+  .row .k { color: var(--paper-dim); }
+  .row .v { text-align: right; max-width: 62%; }
+
+  .details { margin-top: 16px; }
+
+  .again {
+    margin-top: 16px;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--paper-dim);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stamp { animation: none; opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="eyebrow">Job App Tracker</div>
+    <h1>Log a listing</h1>
+    <p class="sub">Paste the link. It gets read, parsed, and dropped into your sheet as a new row — status "Waiting", dated today.</p>
+
+    <form id="jobForm">
+      <div class="field">
+        <label for="link">Listing URL</label>
+        <input id="link" type="url" placeholder="https://jobs.example.com/careers/1234" required autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="password">Access code</label>
+        <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button id="submitBtn" type="submit">Log it</button>
+    </form>
+
+    <div class="status" id="status"></div>
+  </div>
+
+<script>
+  const form = document.getElementById('jobForm');
+  const statusEl = document.getElementById('status');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const link = document.getElementById('link').value.trim();
+    const password = document.getElementById('password').value;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Reading listing…';
+    statusEl.innerHTML = '';
+
+    try {
+      const res = await fetch('/api/log-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Something went wrong.');
+      }
+
+      const row = data.row;
+      statusEl.innerHTML = `
+        <div class="stamp-wrap">
+          <span class="stamp">Logged</span>
+          <div class="details">
+            <div class="row"><span class="k">Company</span><span class="v">${escapeHtml(row.company)}</span></div>
+            <div class="row"><span class="k">Position</span><span class="v">${escapeHtml(row.position)}</span></div>
+            <div class="row"><span class="k">Location</span><span class="v">${escapeHtml(row.location)}</span></div>
+            <div class="row"><span class="k">Pay</span><span class="v">${escapeHtml(row.pay)}</span></div>
+            <div class="row"><span class="k">Date</span><span class="v">${escapeHtml(row.date)}</span></div>
+          </div>
+        </div>
+      `;
+      form.reset();
+    } catch (err) {
+      statusEl.innerHTML = `<div class="error-box">Couldn't log this one — ${escapeHtml(err.message)}</div>`;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Log it';
+    }
+  });
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str ?? '';
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>

@@ -72,7 +72,14 @@ Pay
   "$120k-$150k"
   "$45/hr"
   "$130,000-$165,000"
-- If no compensation is listed, return "Not listed".
+- Search for phrases like "salary range" or "base pay" and return the first match.
+- Examples:
+  "Base pay: $120k-$150k"
+  "Salary range: $120k-$150k"  
+  "Hiring Min Rate: 71,808 USD" 
+- If no compensation is listed, use best reasoning according to location, position, and company.
+- If you make an estimate, return "Estimated".
+- If you are 50 percent sure then return "Unknown".
 
 General
 - Never invent information.

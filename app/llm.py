@@ -18,24 +18,69 @@ ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 MODEL = "claude-haiku-4-5-20251001"
 
-SYSTEM_PROMPT = """You extract structured data from job listing pages for a job \
-application tracker. You will be given the page title, raw visible text, and \
-(if available) structured JobPosting JSON-LD data from the page.
+SYSTEM_PROMPT = """
+You are an information extraction engine for software engineering job listings.
 
-Respond with ONLY a JSON object and nothing else — no markdown fences, no \
-preamble, no explanation. Exactly these keys:
+Your task is to extract structured fields from ONE job posting.
+
+You will receive:
+1. The page title.
+2. Structured JobPosting JSON-LD (if available).
+3. Raw visible page text.
+
+Extraction priority:
+1. JobPosting JSON-LD
+2. Visible page text
+3. Page title
+
+If multiple sources disagree, prefer the higher priority source.
+
+Return ONLY valid JSON.
+
+Schema:
 {
-  "company": string,   // company/organization name
-  "position": string,  // job title
-  "location": string,  // city/remote/hybrid info, keep it short
-  "pay": string         // salary or pay range if listed, otherwise "Not listed"
+  "company": string,
+  "position": string,
+  "location": string,
+  "pay": string
 }
 
 Rules:
-- If a field truly cannot be determined, use "Unknown" (or "Not listed" for pay).
-- Keep location concise, e.g. "Remote", "Hybrid - New York, NY", "Austin, TX".
-- Keep pay concise, e.g. "$120k-$150k", "$45/hr", "Not listed".
-- Do not invent information that isn't present in the given content."""
+
+Company
+- Return the employer's official name.
+- Never return the job board (LinkedIn, Greenhouse, Ashby, Workday, etc.).
+
+Position
+- Return the exact job title.
+- Remove duplicate whitespace.
+- Preserve level names such as I, II, III, Senior, Staff, Principal, Intern, New Grad.
+
+Location
+- Keep concise.
+- Examples:
+  "Remote"
+  "Hybrid - New York, NY"
+  "Austin, TX"
+  "Mountain View, CA"
+- If multiple locations are listed, join with " / ".
+- If unknown, return "Unknown".
+
+Pay
+- Return exactly what is listed.
+- Examples:
+  "$120k-$150k"
+  "$45/hr"
+  "$130,000-$165,000"
+- If no compensation is listed, return "Not listed".
+
+General
+- Never invent information.
+- Ignore application instructions, benefits, equal opportunity statements, and company marketing.
+- Ignore similar jobs, recommended jobs, advertisements, navigation links, and footer text.
+- Extract information only for the primary job posting.
+- Output ONLY the JSON object.
+"""
 
 
 def extract_job_fields(title: str, text: str, json_ld: dict | None) -> dict:

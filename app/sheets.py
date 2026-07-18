@@ -26,8 +26,18 @@ def _get_credentials() -> Credentials:
             "GOOGLE_CREDENTIALS_JSON environment variable is not set. "
             "Paste the full contents of your service account JSON file into it."
         )
-    info = json.loads(raw)
-    return Credentials.from_service_account_info(info, scopes=SCOPES)
+    try:
+        info = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"GOOGLE_CREDENTIALS_JSON isn't valid JSON ({e}). "
+            "Make sure you copied the ENTIRE .json file contents, unmodified."
+        ) from e
+
+    try:
+        return Credentials.from_service_account_info(info, scopes=SCOPES)
+    except Exception as e:
+        raise RuntimeError(f"GOOGLE_CREDENTIALS_JSON couldn't be loaded as credentials: {e}") from e
 
 
 def _get_sheet():
@@ -38,7 +48,24 @@ def _get_sheet():
 
     creds = _get_credentials()
     client = gspread.authorize(creds)
-    return client.open_by_key(sheet_id).worksheet(sheet_tab)
+
+    try:
+        spreadsheet = client.open_by_key(sheet_id)
+    except gspread.exceptions.SpreadsheetNotFound as e:
+        raise RuntimeError(
+            f"No spreadsheet found for SHEET_ID='{sheet_id}'. Check the ID is correct, "
+            "and that the service account email has been shared as an Editor on this sheet."
+        ) from e
+    except gspread.exceptions.APIError as e:
+        raise RuntimeError(f"Google Sheets API error opening the spreadsheet: {e}") from e
+
+    try:
+        return spreadsheet.worksheet(sheet_tab)
+    except gspread.exceptions.WorksheetNotFound as e:
+        raise RuntimeError(
+            f"No tab named '{sheet_tab}' in this spreadsheet. Check SHEET_TAB matches the "
+            "exact tab name (case-sensitive)."
+        ) from e
 
 
 def _ensure_headers(sheet):
